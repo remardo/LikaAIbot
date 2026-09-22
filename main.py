@@ -7,6 +7,7 @@ from datetime import date, datetime
 
 import aiohttp
 from aiogram import Bot, Dispatcher, F
+from aiogram.exceptions import TelegramNetworkError
 from aiogram.filters import CommandStart
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from dotenv import load_dotenv
@@ -215,7 +216,15 @@ async def main():
         else:
             await m.answer("Не понял дату. Напишите в формате ДД.ММ.ГГГГ, например 07.04.1981.")
 
-    await dp.start_polling(bot)
+    attempt = 0
+    while True:
+        try:
+            await dp.start_polling(bot)
+            return
+        except TelegramNetworkError:
+            attempt += 1
+            log.warning("telegram unreachable, retry %s", attempt)
+            await asyncio.sleep(5)
 
 
 if __name__ == "__main__":
