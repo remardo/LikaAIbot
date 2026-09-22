@@ -1,3 +1,6 @@
 .env
 __pycache__/
 .venv/
+.coolify_api
+*.key
+scripts/.coolify_api
