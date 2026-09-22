@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import re
+import socket
 from datetime import date, datetime
 
 import aiohttp
@@ -19,6 +20,25 @@ DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("lika_bot")
+
+# Some hosting networks filter Telegram IP ranges. Pin known-good IPs first,
+# system DNS stays as fallback.
+_TG_IPS = ["149.154.167.220"]
+_orig_getaddrinfo = socket.getaddrinfo
+
+
+def _tg_getaddrinfo(host, port, *args, **kwargs):
+    if host == "api.telegram.org":
+        fixed = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (ip, port)) for ip in _TG_IPS]
+        try:
+            rest = [r for r in _orig_getaddrinfo(host, port, *args, **kwargs) if r[4][0] not in _TG_IPS]
+            return fixed + rest
+        except socket.gaierror:
+            return fixed
+    return _orig_getaddrinfo(host, port, *args, **kwargs)
+
+
+socket.getaddrinfo = _tg_getaddrinfo
 
 MONTHS_RU = ["", "января", "февраля", "марта", "апреля", "мая", "июня",
              "июля", "августа", "сентября", "октября", "ноября", "декабря"]
